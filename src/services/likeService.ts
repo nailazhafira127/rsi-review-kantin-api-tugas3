@@ -5,7 +5,7 @@ import type { CreateLikeInput } from '../schemas/resourceSchema.ts';
 export class LikeService {
   constructor(private readonly repository = new LikeRepository()) {}
 
-  async createLike(input: CreateLikeInput) {
+  async createLike(input: CreateLikeInput & { userId: number }) {
     const like = await this.repository.create(input);
     if (!like) throw new NotFoundError('Like gagal dibuat');
     return like;

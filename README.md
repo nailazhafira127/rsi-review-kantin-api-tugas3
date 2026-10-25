@@ -30,7 +30,7 @@ sqlcmd -S localhost -E -C -i ..\db\03-seed.sql
 
 ```bash
 npm init -y
-npm install express mssql dotenv drizzle-orm@1.0.0-rc.5-5935859 swagger-ui-express swagger-autogen
+npm install express mssql dotenv drizzle-orm@1.0.0-rc.5-5935859 swagger-ui-express @asteasolutions/zod-to-openapi zod
 npm install -D typescript @types/express @types/mssql @types/node tsx drizzle-kit@1.0.0-rc.5-5935859 @types/swagger-ui-express
 ```
 
@@ -60,6 +60,7 @@ Copy-Item .env.example .env
 ```
 
 ```
+PORT=3000
 DB_SERVER=localhost
 DB_PORT=1433
 DB_USER=praktikum_user
@@ -67,9 +68,13 @@ DB_PASSWORD=Praktikum2026!
 DB_NAME=review_kantin
 DB_ENCRYPT=false
 DB_TRUST_SERVER_CERTIFICATE=true
+JWT_SECRET=<ganti-dengan-secret-random-minimal-32-karakter>
 ```
 
 > Nilai yang mengandung `#` wajib dibungkus tanda kutip (dotenv menganggap `#` komentar).
+> Buat `JWT_SECRET` unik, misalnya dengan
+> `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
+> Jangan gunakan teks placeholder tersebut sebagai secret sebenarnya.
 
 ## Langkah 3 — Definisikan schema (`src/db/schema.ts`)
 
@@ -227,7 +232,7 @@ private toDto(row: StallRow): StallResponseDto {
 
 - `src/controllers/stallController.ts` — handler Express, memetakan `STALL_NOT_FOUND` → 404.
 - `src/routes/stallRouter.ts` — pemetaan endpoint.
-- `src/index.ts` — server Express + `GET /health` (`SELECT 1` via Drizzle).
+- `src/index.ts` — server Express, halaman indeks API, dan `GET /health` (`SELECT 1` via Drizzle).
 
 ## Langkah 8 — Jalankan & uji
 
@@ -235,16 +240,61 @@ private toDto(row: StallRow): StallResponseDto {
 npm run dev
 ```
 
+Secara default server berjalan pada port `3000`. Jika port tersebut sudah dipakai,
+atur `PORT=3001` (atau port lain yang tersedia) di file `.env`.
+
 | Method | Endpoint | Hasil |
 | --- | --- | --- |
+| GET | `/` | `200` informasi API dan daftar endpoint |
+| GET | `/api/v1` | `200` daftar endpoint API |
 | GET | `/health` | `200` koneksi DB OK |
-| GET | `/docs` | Swagger UI (spec hasil generate `swagger-autogen`) |
+| GET | `/docs` | Swagger UI |
 | GET | `/api/v1/stalls?search=&category=&page=&limit=` | `200` daftar + `meta {page,limit,total}` |
 | GET | `/api/v1/stalls/:id` | `200` detail, `404` bila tak ada |
-| GET | `/api/v1/stalls/:id/menus` | `200` daftar menu (join) |
-| POST | `/api/v1/stalls` | `201` stall baru |
-| PUT | `/api/v1/stalls/:id` | `200` stall ter-update |
-| DELETE | `/api/v1/stalls/:id` | `200` stall terhapus |
+| POST | `/api/v1/auth/register` | `201` registrasi akun customer |
+| POST | `/api/v1/auth/login` | `200` JWT dan profil user |
+| GET | `/api/v1/auth/me` | `200` profil dari JWT; perlu login |
+| POST | `/api/v1/stalls` | `201` stall baru; owner/admin |
+| PUT | `/api/v1/stalls/:id` | `200` stall ter-update; owner pemilik/admin |
+| DELETE | `/api/v1/stalls/:id` | `200` stall terhapus; admin |
+| POST | `/api/v1/stalls/:id/reviews` | `201` review; perlu login |
+| GET | `/api/v1/stalls/:id/menus` | `200` daftar menu; owner pemilik/admin |
+
+Semua endpoint terlindungi menerima header `Authorization: Bearer <token>`.
+Registrasi publik selalu membuat role `customer`; role `owner` dan `admin` tidak
+bisa dipilih lewat request registrasi dan harus diberikan oleh administrator.
+Permintaan tanpa token atau token yang tidak valid mendapat `401`; user yang
+login tetapi role atau kepemilikannya tidak sesuai mendapat `403`. Identitas
+reviewer dan pemilik kantin berasal dari token, bukan dari body request.
+
+Endpoint manajemen selain tabel di atas (users, menu-items, reviews, likes,
+flags, dan audit-logs) hanya dapat diakses `admin`.
+
+Contoh alur:
+
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
+
+{
+  "name": "Nama Pengguna",
+  "email": "user@example.com",
+  "password": "password-minimal-8"
+}
+```
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password-minimal-8"
+}
+```
+
+Kirim nilai `data.token` dari respons login pada header `Authorization` dengan
+skema `Bearer` untuk endpoint yang mewajibkan login.
 
 Contoh:
 
@@ -256,49 +306,26 @@ curl.exe "http://localhost:3000/api/v1/stalls?category=Minuman&limit=2&page=1"
 
 ## Dokumentasi API (Swagger UI)
 
-Dokumentasi dibangun dengan **`swagger-autogen`**: ia memindai file route/entry,
-mendeteksi **path + method secara otomatis**, sedangkan parameter & response ditambahkan
-lewat komentar singkat `#swagger.*` di dalam handler. Hasilnya disajikan lewat
-**`swagger-ui-express`** di `http://localhost:3000/docs`.
+Dokumentasi dibangun dari schema Zod menggunakan **`@asteasolutions/zod-to-openapi`**
+dan disajikan lewat **`swagger-ui-express`** di `http://localhost:3000/docs`.
 
 Alur:
 
-1. `npm run docs:gen` — memindai `src/index.ts` (beserta router yang diimpor) dan
-   menghasilkan `src/docs/swagger-output.json`.
-2. `npm run dev` — menyajikan spec tersebut di `/docs`.
+1. `src/docs/openapi.ts` menyusun spesifikasi OpenAPI dari schema dan endpoint API.
+2. `npm run docs:gen` — menghasilkan `src/docs/swagger-output.json`.
+3. `npm run dev` — menyajikan spec tersebut di `/docs`.
    (`predev`/`prestart` otomatis menjalankan `docs:gen` sebelum server start.)
-
-Karena `#swagger.*` harus berada di dalam body handler, route ditulis sebagai handler
-**inline** yang memanggil controller, mis.:
-
-```ts
-stallRouter.get('/', (req, res) => {
-  // #swagger.parameters['search']   = { in: 'query', type: 'string' }
-  // #swagger.parameters['category'] = { in: 'query', type: 'string' }
-  // #swagger.parameters['page']     = { in: 'query', type: 'integer' }
-  // #swagger.parameters['limit']    = { in: 'query', type: 'integer' }
-  // #swagger.responses[200] = { description: 'Daftar warung' }
-  return stallController.getStalls(req, res);
-});
-
-stallRouter.post('/', (req, res) => {
-  // #swagger.parameters['body'] = { in: 'body', required: true, schema: { $ref: '#/definitions/StallInput' } }
-  // #swagger.responses[201] = { description: 'Warung dibuat' }
-  return stallController.createStall(req, res);
-});
-```
 
 File terkait:
 
-- `src/docs/swagger.ts` — definisi `info`, `servers`, `definitions.StallInput`, lalu `swaggerAutogen()(outputFile, endpointsFiles, doc)`.
-- `src/docs/swagger-output.json` — **hasil generate** (di-`.gitignore`, jangan diedit manual).
-- `src/routes/stallRouter.ts` — handler inline + `#swagger.parameters`/`#swagger.responses`.
-- `src/index.ts` — `app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));`
+- `src/docs/openapi.ts` — definisi endpoint, skema, dan autentikasi Bearer JWT.
+- `src/docs/swagger.ts` — menulis dokumen OpenAPI ke file JSON.
+- `src/docs/swagger-output.json` — **hasil generate**; jangan diedit manual.
+- `src/routes/` — endpoint beserta middleware validasi dan otorisasi.
+- `src/middlewares/authenticate.ts` — verifikasi JWT dan pemeriksaan role.
+- `src/index.ts` — menyajikan Swagger UI pada `/docs`.
 
 Buka `/docs`, lalu klik **Try it out** untuk mengisi parameter/body dan mengirim request.
-
-> Spec yang dihasilkan berformat **Swagger 2.0** — karena itu schema dirujuk lewat
-> `#/definitions/...` (bukan `#/components/schemas/...`).
 
 ---
 
@@ -327,8 +354,10 @@ hands-on-2-orm-drizzle/
    │  ├─ schema.ts            # pemetaan tabel (manual)
    │  └─ index.ts            # koneksi Drizzle
    ├─ docs/
-   │  ├─ swagger.ts           # generator spec (swagger-autogen)
+   │  ├─ openapi.ts            # spesifikasi OpenAPI
+   │  ├─ swagger.ts            # generator JSON OpenAPI
    │  └─ swagger-output.json  # hasil generate (gitignored)
+   ├─ auth/jwt.ts             # pembuatan dan verifikasi JWT
    ├─ dtos/stallDto.ts
    ├─ repositories/
    │  ├─ stallRepository.ts

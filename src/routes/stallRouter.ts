@@ -1,27 +1,62 @@
 import { Router } from 'express';
-import { StallController } from '../controllers/stallController.ts';
 import { validate } from '../middlewares/validate.ts';
+import { authenticate, authorize } from '../middlewares/authenticate.ts';
 import {
-  createStallSchema,
+  createReviewBodySchema,
+  createStallBodySchema,
   idParamSchema,
-  stallQuerySchema,
-  updateStallSchema,
-} from '../schemas/stallSchema.ts';
+  listStallsQuerySchema,
+  updateStallBodySchema,
+} from '../validators/schemas.ts';
+import * as stall from '../controllers/stallController.ts';
+import * as review from '../controllers/reviewController.ts';
 
-const stallRouter = Router();
-const stallController = new StallController();
+export const stallRouter = Router();
 
-// Setiap route divalidasi dulu: body -> body, query -> query, id -> params.
-stallRouter.get('/', validate(stallQuerySchema, 'query'), stallController.getStalls);
-stallRouter.post('/', validate(createStallSchema, 'body'), stallController.createStall);
-stallRouter.get('/:id', validate(idParamSchema, 'params'), stallController.getStallById);
+// publik
+stallRouter.get('/', validate({ query: listStallsQuerySchema }), stall.list);
+stallRouter.get('/:id', validate({ params: idParamSchema }), stall.getById);
+
+// owner, admin
+stallRouter.post(
+  '/',
+  authenticate,
+  authorize('owner', 'admin'),
+  validate({ body: createStallBodySchema }),
+  stall.create,
+);
+
+// owner (miliknya, dicek di service), admin
 stallRouter.put(
   '/:id',
-  validate(idParamSchema, 'params'),
-  validate(updateStallSchema, 'body'),
-  stallController.updateStall,
+  authenticate,
+  authorize('owner', 'admin'),
+  validate({ params: idParamSchema, body: updateStallBodySchema }),
+  stall.update,
 );
-stallRouter.delete('/:id', validate(idParamSchema, 'params'), stallController.deleteStall);
-stallRouter.get('/:id/menus', validate(idParamSchema, 'params'), stallController.getStallMenus);
 
-export { stallRouter };
+// admin
+stallRouter.delete(
+  '/:id',
+  authenticate,
+  authorize('admin'),
+  validate({ params: idParamSchema }),
+  stall.remove,
+);
+
+// semua role yang login
+stallRouter.post(
+  '/:id/reviews',
+  authenticate,
+  validate({ params: idParamSchema, body: createReviewBodySchema }),
+  review.create,
+);
+
+// owner pemilik / admin
+stallRouter.get(
+  '/:id/menus',
+  authenticate,
+  authorize('owner', 'admin'),
+  validate({ params: idParamSchema }),
+  stall.menus,
+);

@@ -1,19 +1,24 @@
-export interface StallResponseDto {
-  id: number;
-  ownerId: number;
-  name: string;
-  category: string | null;
-  location: string | null;
-  description: string | null;
+import { stalls } from '../db/schema.ts';
+
+export type StallRow = typeof stalls.$inferSelect;
+
+export type StallResponseDto = Omit<StallRow, 'avgRating'> & {
   avgRating: number;
-  reviewCount: number;
   isPopular: boolean;
+};
+
+export interface FindAllParams {
+  search?: string;
+  category?: string;
+  page: number;
+  limit: number;
 }
 
-export interface MenuItemDto {
-  id: number;
-  stallId: number;
+export interface CreateStallInput {
   name: string;
-  price: number;
-  isAvailable: boolean;
+  category?: string;
+  location?: string;
+  description?: string;
 }
+
+export type UpdateStallInput = Partial<CreateStallInput>;

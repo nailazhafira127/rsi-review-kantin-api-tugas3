@@ -1,21 +1,7 @@
 import { and, count, eq, like, type SQL } from 'drizzle-orm';
 import { getDb } from '../db/index.ts';
 import { stalls } from '../db/schema.ts';
-
-export interface FindAllParams {
-  search?: string;
-  category?: string;
-  page: number;
-  limit: number;
-}
-
-export interface CreateStallInput {
-  ownerId: number;
-  name: string;
-  category?: string | null;
-  location?: string | null;
-  description?: string | null;
-}
+import type { CreateStallInput, FindAllParams, UpdateStallInput } from '../dtos/stallDto.ts';
 
 export class StallRepository {
   async findAll(params: FindAllParams) {
@@ -28,7 +14,6 @@ export class StallRepository {
 
     const offset = (params.page - 1) * params.limit;
 
-    // MSSQL: pagination memakai ORDER BY + OFFSET ... FETCH NEXT.
     const rows = await db
       .select()
       .from(stalls)
@@ -38,7 +23,6 @@ export class StallRepository {
       .fetch(params.limit);
 
     const totals = await db.select({ total: count() }).from(stalls).where(where);
-
     return { rows, total: Number(totals[0]?.total ?? 0) };
   }
 
@@ -48,7 +32,7 @@ export class StallRepository {
     return rows[0];
   }
 
-  async create(input: CreateStallInput) {
+  async create(input: CreateStallInput & { ownerId: number }) {
     const db = await getDb();
     const rows = await db
       .insert(stalls)
@@ -59,31 +43,20 @@ export class StallRepository {
         category: input.category ?? null,
         location: input.location ?? null,
         description: input.description ?? null,
-        avgRating: '0.00',
+        avgRating: '0',
         reviewCount: 0,
       });
     return rows[0];
   }
 
-  async update(id: number, input: Partial<CreateStallInput>) {
+  async update(id: number, input: UpdateStallInput) {
     const db = await getDb();
-    const rows = await db
-      .update(stalls)
-      .set({
-        ...(input.ownerId !== undefined ? { ownerId: input.ownerId } : {}),
-        ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.category !== undefined ? { category: input.category } : {}),
-        ...(input.location !== undefined ? { location: input.location } : {}),
-        ...(input.description !== undefined ? { description: input.description } : {}),
-      })
-      .where(eq(stalls.id, id))
-      .output();
-    return rows[0];
+    await db.update(stalls).set(input).where(eq(stalls.id, id));
+    return this.findById(id);
   }
 
-  async remove(id: number) {
+  async delete(id: number) {
     const db = await getDb();
-    const rows = await db.delete(stalls).where(eq(stalls.id, id)).output();
-    return rows[0];
+    await db.delete(stalls).where(eq(stalls.id, id));
   }
 }

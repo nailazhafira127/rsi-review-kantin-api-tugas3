@@ -3,14 +3,21 @@
   "info": {
     "title": "Review Kantin API",
     "version": "1.0.0",
-    "description": "Dokumentasi OpenAPI 3.0 yang dibangkitkan otomatis dari schema zod (@asteasolutions/zod-to-openapi) — satu sumber kebenaran untuk validasi dan dokumentasi."
+    "description": "Dokumentasi OpenAPI 3.0 yang dibangkitkan dari schema zod. Klik **Authorize**, lalu isi token dari `POST /api/v1/auth/login`."
   },
   "servers": [
     {
-      "url": "http://localhost:3000"
+      "url": "/"
     }
   ],
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
     "schemas": {
       "Stall": {
         "type": "object",
@@ -99,6 +106,38 @@
           "isAvailable"
         ]
       },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Nama Pengguna"
+          },
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "owner",
+              "customer"
+            ],
+            "example": "customer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role"
+        ]
+      },
       "ErrorResponse": {
         "type": "object",
         "properties": {
@@ -140,91 +179,111 @@
           "message"
         ]
       },
-      "StallInput": {
+      "RegisterInput": {
         "type": "object",
         "properties": {
-          "ownerId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "description": "ID owner (USERS.id dengan role owner)",
-            "example": 2
-          },
           "name": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 100,
-            "description": "Nama kantin",
-            "example": "Kantin Baru"
+            "maxLength": 100
           },
-          "category": {
+          "email": {
             "type": "string",
-            "nullable": true,
-            "maxLength": 50,
-            "description": "Kategori kantin (mis. Nasi, Bakso, Minuman)",
-            "example": "Nasi"
+            "maxLength": 150,
+            "format": "email"
           },
-          "location": {
+          "password": {
             "type": "string",
-            "nullable": true,
-            "maxLength": 100,
-            "description": "Lokasi kantin",
-            "example": "Kantin FK"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 1000,
-            "description": "Deskripsi kantin",
-            "example": "Nasi goreng dadakan"
+            "minLength": 8,
+            "maxLength": 72
           }
         },
         "required": [
-          "ownerId",
+          "name",
+          "email",
+          "password"
+        ]
+      },
+      "LoginInput": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "StallInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 100
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
           "name"
-        ],
-        "additionalProperties": false
+        ]
       },
       "StallUpdate": {
         "type": "object",
         "properties": {
-          "ownerId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "description": "ID owner (USERS.id dengan role owner)",
-            "example": 2
-          },
           "name": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 100,
-            "description": "Nama kantin",
-            "example": "Kantin Baru"
+            "maxLength": 100
           },
           "category": {
             "type": "string",
-            "nullable": true,
-            "maxLength": 50,
-            "description": "Kategori kantin (mis. Nasi, Bakso, Minuman)",
-            "example": "Nasi"
+            "maxLength": 50
           },
           "location": {
             "type": "string",
-            "nullable": true,
-            "maxLength": 100,
-            "description": "Lokasi kantin",
-            "example": "Kantin FK"
+            "maxLength": 100
           },
           "description": {
             "type": "string",
-            "nullable": true,
-            "maxLength": 1000,
-            "description": "Deskripsi kantin",
-            "example": "Nasi goreng dadakan"
+            "maxLength": 1000
+          }
+        }
+      },
+      "StallReviewInput": {
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 1000
           }
         },
-        "additionalProperties": false
+        "required": [
+          "rating"
+        ]
       },
       "UserInput": {
         "type": "object",
@@ -314,37 +373,6 @@
         },
         "additionalProperties": false
       },
-      "ReviewInput": {
-        "type": "object",
-        "properties": {
-          "stallId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
-          "userId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
-          "rating": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 5
-          },
-          "comment": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 4000
-          }
-        },
-        "required": [
-          "stallId",
-          "userId",
-          "rating"
-        ],
-        "additionalProperties": false
-      },
       "LikeInput": {
         "type": "object",
         "properties": {
@@ -352,16 +380,10 @@
             "type": "integer",
             "minimum": 0,
             "exclusiveMinimum": true
-          },
-          "userId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
           }
         },
         "required": [
-          "reviewId",
-          "userId"
+          "reviewId"
         ],
         "additionalProperties": false
       },
@@ -385,11 +407,6 @@
       "AuditLogInput": {
         "type": "object",
         "properties": {
-          "userId": {
-            "type": "integer",
-            "minimum": 0,
-            "exclusiveMinimum": true
-          },
           "action": {
             "type": "string",
             "minLength": 1,
@@ -414,7 +431,6 @@
           }
         },
         "required": [
-          "userId",
           "action",
           "targetTable",
           "targetId"
@@ -503,6 +519,55 @@
           "status",
           "data"
         ]
+      },
+      "ProfileResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        },
+        "required": [
+          "status",
+          "data"
+        ]
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "success"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              },
+              "user": {
+                "$ref": "#/components/schemas/UserProfile"
+              }
+            },
+            "required": [
+              "token",
+              "user"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "data"
+        ]
       }
     },
     "parameters": {}
@@ -543,19 +608,155 @@
         }
       }
     },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "AUTH"
+        ],
+        "summary": "Registrasi akun (selalu role customer)",
+        "requestBody": {
+          "required": true,
+          "description": "Data akun baru",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Akun berhasil dibuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email sudah terdaftar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "AUTH"
+        ],
+        "summary": "Login, mengembalikan JWT",
+        "requestBody": {
+          "required": true,
+          "description": "Email dan password",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login berhasil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Email atau password salah",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "AUTH"
+        ],
+        "summary": "Profil user dari token (semua role)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profil user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/stalls": {
       "get": {
         "tags": [
           "STALLS"
         ],
-        "summary": "Daftar kantin",
+        "summary": "Daftar kantin (publik)",
         "description": "Daftar kantin dengan filter `search`/`category` dan pagination.",
         "parameters": [
           {
             "schema": {
               "type": "string",
-              "maxLength": 100,
-              "description": "Cari berdasarkan nama kantin"
+              "maxLength": 100
             },
             "required": false,
             "name": "search",
@@ -564,9 +765,7 @@
           {
             "schema": {
               "type": "string",
-              "maxLength": 50,
-              "description": "Filter kategori kantin",
-              "example": "Minuman"
+              "maxLength": 50
             },
             "required": false,
             "name": "category",
@@ -576,9 +775,7 @@
             "schema": {
               "type": "integer",
               "minimum": 1,
-              "default": 1,
-              "description": "Nomor halaman (default 1)",
-              "example": 1
+              "default": 1
             },
             "required": false,
             "name": "page",
@@ -589,9 +786,7 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
-              "default": 10,
-              "description": "Jumlah data per halaman (maks 100)",
-              "example": 10
+              "default": 10
             },
             "required": false,
             "name": "limit",
@@ -610,7 +805,7 @@
             }
           },
           "400": {
-            "description": "Query parameter tidak valid",
+            "description": "Query tidak valid",
             "content": {
               "application/json": {
                 "schema": {
@@ -625,9 +820,15 @@
         "tags": [
           "STALLS"
         ],
-        "summary": "Tambah kantin",
+        "summary": "Tambah kantin (owner, admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
-          "description": "Data kantin baru",
+          "required": true,
+          "description": "Data kantin baru. ownerId diambil dari token.",
           "content": {
             "application/json": {
               "schema": {
@@ -648,7 +849,27 @@
             }
           },
           "400": {
-            "description": "Body tidak valid",
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role tidak memiliki akses ke endpoint ini",
             "content": {
               "application/json": {
                 "schema": {
@@ -665,15 +886,13 @@
         "tags": [
           "STALLS"
         ],
-        "summary": "Detail kantin",
+        "summary": "Detail kantin (publik)",
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -717,15 +936,18 @@
         "tags": [
           "STALLS"
         ],
-        "summary": "Update kantin",
+        "summary": "Update kantin (owner pemilik, admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -733,7 +955,8 @@
           }
         ],
         "requestBody": {
-          "description": "Data kantin yang diubah (boleh sebagian)",
+          "required": true,
+          "description": "Data yang diubah (boleh sebagian)",
           "content": {
             "application/json": {
               "schema": {
@@ -754,7 +977,27 @@
             }
           },
           "400": {
-            "description": "Body/parameter tidak valid",
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan pemilik kantin / role tidak sesuai",
             "content": {
               "application/json": {
                 "schema": {
@@ -779,15 +1022,18 @@
         "tags": [
           "STALLS"
         ],
-        "summary": "Hapus kantin",
+        "summary": "Hapus kantin (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -800,13 +1046,48 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StallDetailResponse"
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "success"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "message"
+                  ]
                 }
               }
             }
           },
           "400": {
             "description": "Parameter id tidak valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
             "content": {
               "application/json": {
                 "schema": {
@@ -824,6 +1105,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Kantin masih punya data terkait",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -833,15 +1124,18 @@
         "tags": [
           "STALLS"
         ],
-        "summary": "Daftar menu sebuah kantin",
+        "summary": "Daftar menu sebuah kantin (owner pemilik, admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -869,8 +1163,130 @@
               }
             }
           },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Bukan pemilik kantin / role tidak sesuai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Kantin tidak ditemukan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stalls/{id}/reviews": {
+      "post": {
+        "tags": [
+          "STALLS"
+        ],
+        "summary": "Tambah review ke kantin (semua role yang login)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Rating 1..5 dan komentar opsional. userId dari token.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StallReviewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Review berhasil dibuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "success"
+                      ]
+                    },
+                    "data": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Kantin tidak ditemukan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Anda sudah mereview kantin ini",
             "content": {
               "application/json": {
                 "schema": {
@@ -887,7 +1303,12 @@
         "tags": [
           "USERS"
         ],
-        "summary": "Daftar pengguna",
+        "summary": "Daftar pengguna (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Daftar pengguna",
@@ -916,6 +1337,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -923,8 +1364,14 @@
         "tags": [
           "USERS"
         ],
-        "summary": "Tambah pengguna",
+        "summary": "Tambah pengguna (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -967,6 +1414,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -976,7 +1443,12 @@
         "tags": [
           "MENU_ITEMS"
         ],
-        "summary": "Daftar menu (join stall)",
+        "summary": "Daftar menu (join stall) (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Daftar menu dengan nama kantin",
@@ -1005,6 +1477,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1012,8 +1504,14 @@
         "tags": [
           "MENU_ITEMS"
         ],
-        "summary": "Tambah menu",
+        "summary": "Tambah menu (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1056,6 +1554,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1065,15 +1583,18 @@
         "tags": [
           "MENU_ITEMS"
         ],
-        "summary": "Detail menu",
+        "summary": "Detail menu (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -1105,6 +1626,36 @@
               }
             }
           },
+          "400": {
+            "description": "Parameter id tidak valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Menu tidak ditemukan",
             "content": {
@@ -1121,15 +1672,18 @@
         "tags": [
           "MENU_ITEMS"
         ],
-        "summary": "Ubah menu",
+        "summary": "Ubah menu (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -1137,6 +1691,7 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1180,6 +1735,26 @@
               }
             }
           },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Menu tidak ditemukan",
             "content": {
@@ -1196,15 +1771,18 @@
         "tags": [
           "MENU_ITEMS"
         ],
-        "summary": "Hapus menu",
+        "summary": "Hapus menu (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -1236,6 +1814,36 @@
               }
             }
           },
+          "400": {
+            "description": "Parameter id tidak valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Menu tidak ditemukan",
             "content": {
@@ -1254,7 +1862,12 @@
         "tags": [
           "REVIEWS"
         ],
-        "summary": "Daftar review (join user)",
+        "summary": "Daftar review (join user) (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Daftar review dengan nama pengguna",
@@ -1283,50 +1896,19 @@
                 }
               }
             }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "REVIEWS"
-        ],
-        "summary": "Tambah review",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Review berhasil dibuat",
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "success"
-                      ]
-                    },
-                    "data": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "status"
-                  ]
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
-          "400": {
-            "description": "Body tidak valid",
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
             "content": {
               "application/json": {
                 "schema": {
@@ -1343,15 +1925,18 @@
         "tags": [
           "REVIEWS"
         ],
-        "summary": "Hapus review",
+        "summary": "Hapus review (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -1383,6 +1968,36 @@
               }
             }
           },
+          "400": {
+            "description": "Parameter id tidak valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Review tidak ditemukan",
             "content": {
@@ -1401,8 +2016,14 @@
         "tags": [
           "LIKES"
         ],
-        "summary": "Beri like pada review",
+        "summary": "Beri like pada review (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1445,6 +2066,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1454,15 +2095,18 @@
         "tags": [
           "LIKES"
         ],
-        "summary": "Hapus like",
+        "summary": "Hapus like (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -1494,6 +2138,36 @@
               }
             }
           },
+          "400": {
+            "description": "Parameter id tidak valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Like tidak ditemukan",
             "content": {
@@ -1512,7 +2186,12 @@
         "tags": [
           "FLAGS"
         ],
-        "summary": "Daftar laporan review",
+        "summary": "Daftar laporan review (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Daftar flags",
@@ -1541,6 +2220,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1550,15 +2249,18 @@
         "tags": [
           "FLAGS"
         ],
-        "summary": "Perbarui status laporan",
+        "summary": "Perbarui status laporan (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "exclusiveMinimum": true,
-              "description": "ID kantin",
-              "example": 3
+              "exclusiveMinimum": true
             },
             "required": true,
             "name": "id",
@@ -1566,6 +2268,7 @@
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1609,6 +2312,26 @@
               }
             }
           },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Flag tidak ditemukan",
             "content": {
@@ -1627,7 +2350,12 @@
         "tags": [
           "AUDIT_LOGS"
         ],
-        "summary": "Daftar audit log",
+        "summary": "Daftar audit log (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Daftar audit log",
@@ -1656,6 +2384,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -1663,8 +2411,14 @@
         "tags": [
           "AUDIT_LOGS"
         ],
-        "summary": "Catat aktivitas audit",
+        "summary": "Catat aktivitas audit (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -1700,6 +2454,26 @@
           },
           "400": {
             "description": "Body tidak valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token tidak ada / tidak valid / kedaluwarsa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Hanya admin yang boleh mengakses",
             "content": {
               "application/json": {
                 "schema": {

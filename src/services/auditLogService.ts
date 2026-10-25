@@ -9,7 +9,7 @@ export class AuditLogService {
     return this.repository.findAll();
   }
 
-  async createAuditLog(input: CreateAuditLogInput) {
+  async createAuditLog(input: CreateAuditLogInput & { userId: number }) {
     const row = await this.repository.create({
       ...input,
       metadata: input.metadata == null ? null : JSON.stringify(input.metadata),

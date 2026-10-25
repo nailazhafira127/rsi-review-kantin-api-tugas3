@@ -9,7 +9,7 @@ extendZodWithOpenApi(z);
 // id pada /:id selalu coerce dari string query/path menjadi angka.
 export const idParamSchema = z.object({
   id: z.coerce
-    .number({ invalid_type_error: 'id harus berupa angka' })
+    .number({ error: 'id harus berupa angka' })
     .int('id harus bilangan bulat')
     .positive('id harus lebih dari 0')
     .openapi({ example: 3, description: 'ID kantin' }),
@@ -31,13 +31,13 @@ export const stallQuerySchema = z.object({
     .optional()
     .openapi({ description: 'Filter kategori kantin', example: 'Minuman' }),
   page: z.coerce
-    .number({ invalid_type_error: 'page harus berupa angka' })
+    .number({ error: 'page harus berupa angka' })
     .int('page harus bilangan bulat')
     .min(1, 'page minimal 1')
     .default(1)
     .openapi({ description: 'Nomor halaman (default 1)', example: 1 }),
   limit: z.coerce
-    .number({ invalid_type_error: 'limit harus berupa angka' })
+    .number({ error: 'limit harus berupa angka' })
     .int('limit harus bilangan bulat')
     .min(1, 'limit minimal 1')
     .max(100, 'limit maksimal 100')
@@ -45,30 +45,21 @@ export const stallQuerySchema = z.object({
     .openapi({ description: 'Jumlah data per halaman (maks 100)', example: 10 }),
 });
 
-// --------------------------------------------------------------- field bantu
-const optionalNullableText = (max: number) =>
-  z.string().trim().max(max).nullable().optional();
-
 // -------------------------------------------------------------------- body
 export const createStallSchema = z
   .object({
-    ownerId: z
-      .number({ invalid_type_error: 'ownerId harus berupa angka' })
-      .int('ownerId harus bilangan bulat')
-      .positive('ownerId harus lebih dari 0')
-      .openapi({ example: 2, description: 'ID owner (USERS.id dengan role owner)' }),
     name: z
-      .string({ required_error: 'name wajib diisi' })
+      .string({ error: 'name wajib diisi' })
       .trim()
       .min(3, 'name minimal 3 karakter')
       .max(100, 'name maksimal 100 karakter')
       .openapi({ example: 'Kantin Baru', description: 'Nama kantin' }),
-    category: optionalNullableText(50).openapi({
+    category: z.string().trim().max(50).optional().openapi({
       example: 'Nasi',
       description: 'Kategori kantin (mis. Nasi, Bakso, Minuman)',
     }),
-    location: optionalNullableText(100).openapi({ example: 'Kantin FK', description: 'Lokasi kantin' }),
-    description: optionalNullableText(1000).openapi({
+    location: z.string().trim().max(100).optional().openapi({ example: 'Kantin FK', description: 'Lokasi kantin' }),
+    description: z.string().trim().max(1000).optional().openapi({
       example: 'Nasi goreng dadakan',
       description: 'Deskripsi kantin',
     }),

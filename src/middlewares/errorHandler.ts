@@ -1,27 +1,31 @@
-import type { ErrorRequestHandler } from 'express';
-import { AppError } from '../errors/AppError.ts';
+import type { ErrorRequestHandler, RequestHandler } from 'express';
+import { AppError, ValidationError } from '../errors/AppError.ts';
 
-export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-  if (error instanceof SyntaxError && 'status' in error && error.status === 400) {
-    res.status(400).json({ status: 'fail', message: 'JSON pada body tidak valid' });
+export const notFoundHandler: RequestHandler = (_req, _res, next) => {
+  next(new AppError(404, 'Endpoint tidak ditemukan'));
+};
+
+export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  if (err instanceof ValidationError) {
+    res.status(400).json({ status: 'fail', message: err.message, errors: err.errors });
     return;
   }
 
-  if (error instanceof AppError) {
-    res.status(error.statusCode).json({
+  // JSON body rusak (ditolak express.json)
+  if (err?.type === 'entity.parse.failed') {
+    res.status(400).json({
       status: 'fail',
-      message: error.message,
-      ...(error.details !== undefined ? { errors: error.details } : {}),
+      message: 'Validasi gagal',
+      errors: [{ field: 'body', message: 'body harus berupa JSON yang valid' }],
     });
     return;
   }
 
-  const dbError = error as { number?: number };
-  if (dbError.number === 2627 || dbError.number === 547) {
-    res.status(409).json({ status: 'fail', message: 'Data bentrok dengan data yang sudah ada' });
+  if (err instanceof AppError) {
+    res.status(err.statusCode).json({ status: 'fail', message: err.message });
     return;
   }
 
-  console.error('Unhandled error:', error);
+  console.error(err);
   res.status(500).json({ status: 'error', message: 'Terjadi kesalahan pada server' });
 };

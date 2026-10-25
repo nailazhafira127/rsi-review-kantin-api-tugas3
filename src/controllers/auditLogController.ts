@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { getValidated } from '../middlewares/validate.ts';
 import type { CreateAuditLogInput } from '../schemas/resourceSchema.ts';
 import { AuditLogService } from '../services/auditLogService.ts';
+import { getAuthenticatedUser } from '../middlewares/authenticate.ts';
 
 export class AuditLogController {
   constructor(private readonly service = new AuditLogService()) {}
@@ -11,6 +12,10 @@ export class AuditLogController {
   };
   create = async (_req: Request, res: Response): Promise<void> => {
     const input = getValidated<CreateAuditLogInput>(res, 'body');
-    res.status(201).json({ status: 'success', data: await this.service.createAuditLog(input) });
+    const user = getAuthenticatedUser(res);
+    res.status(201).json({
+      status: 'success',
+      data: await this.service.createAuditLog({ ...input, userId: user.id }),
+    });
   };
 }

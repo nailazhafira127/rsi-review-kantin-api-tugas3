@@ -13,16 +13,13 @@ export type CreateMenuItemInput = z.infer<typeof createMenuItemSchema>;
 export type UpdateMenuItemInput = z.infer<typeof updateMenuItemSchema>;
 
 export const createReviewSchema = z.object({
-  stallId: positiveId,
-  userId: positiveId,
   rating: z.number().int().min(1).max(5),
-  comment: z.string().trim().max(4000).nullable().optional(),
+  comment: z.string().trim().max(1000).optional(),
 }).strict();
 export type CreateReviewInput = z.infer<typeof createReviewSchema>;
 
 export const createLikeSchema = z.object({
   reviewId: positiveId,
-  userId: positiveId,
 }).strict();
 export type CreateLikeInput = z.infer<typeof createLikeSchema>;
 
@@ -33,16 +30,14 @@ export type UpdateFlagStatusInput = z.infer<typeof flagStatusSchema>;
 
 export const createFlagSchema = z.object({
   reviewId: positiveId,
-  reportedBy: positiveId,
   reason: z.string().trim().max(255).nullable().optional(),
 }).strict();
 export type CreateFlagInput = z.infer<typeof createFlagSchema>;
 
 export const createAuditLogSchema = z.object({
-  userId: positiveId,
   action: z.string().trim().min(1).max(50),
   targetTable: z.string().trim().min(1).max(50),
   targetId: positiveId,
-  metadata: z.record(z.unknown()).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 }).strict();
 export type CreateAuditLogInput = z.infer<typeof createAuditLogSchema>;

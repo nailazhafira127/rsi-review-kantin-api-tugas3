@@ -3,6 +3,7 @@ import { auditLogs } from '../db/schema.ts';
 import type { CreateAuditLogInput } from '../schemas/resourceSchema.ts';
 
 export interface CreateAuditLogRecord extends Omit<CreateAuditLogInput, 'metadata'> {
+  userId: number;
   metadata: string | null;
 }
 

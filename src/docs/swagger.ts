@@ -1,12 +1,15 @@
 import { writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { openApiDocument } from './openapi.ts';
 
-const outputFile = fileURLToPath(new URL('./swagger-output.json', import.meta.url));
+const outputFile = resolve(process.cwd(), 'src', 'docs', 'swagger-output.json');
 
-async function main() {
-	await writeFile(outputFile, `${JSON.stringify(openApiDocument, null, 2)}\n`, 'utf8');
-	console.log(`Dokumentasi OpenAPI berhasil dibuat: ${outputFile}`);
+async function main(): Promise<void> {
+  await writeFile(outputFile, `${JSON.stringify(openApiDocument, null, 2)}\n`, 'utf8');
+  console.log(`Dokumentasi OpenAPI berhasil dibuat: ${outputFile}`);
 }
 
-void main();
+main().catch((error: unknown) => {
+  console.error('Gagal membuat dokumentasi OpenAPI:', error);
+  process.exitCode = 1;
+});
